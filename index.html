@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -115,20 +117,20 @@
                         <p class="text-xs sm:text-sm text-gray-600 mb-2">Pilih Margin Keuntungan:</p>
                         <div class="flex flex-wrap gap-2 mb-3">
                             <div class="relative">
-                                <input type="radio" id="margin-3x" name="margin" value="3" class="margin-option" checked>
-                                <label for="margin-3x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">3x</label>
+                                <input type="radio" id="margin-30" name="margin" value="0.3" class="margin-option" checked>
+                                <label for="margin-30" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">30%</label>
                             </div>
                             <div class="relative">
-                                <input type="radio" id="margin-4x" name="margin" value="4" class="margin-option">
-                                <label for="margin-4x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">4x</label>
+                                <input type="radio" id="margin-40" name="margin" value="0.4" class="margin-option">
+                                <label for="margin-40" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">40%</label>
                             </div>
                             <div class="relative">
-                                <input type="radio" id="margin-5x" name="margin" value="5" class="margin-option">
-                                <label for="margin-5x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">5x</label>
+                                <input type="radio" id="margin-50" name="margin" value="0.5" class="margin-option">
+                                <label for="margin-50" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">50%</label>
                             </div>
                             <div class="relative">
-                                <input type="radio" id="margin-6x" name="margin" value="6" class="margin-option">
-                                <label for="margin-6x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">6x</label>
+                                <input type="radio" id="margin-60" name="margin" value="0.6" class="margin-option">
+                                <label for="margin-60" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">60%</label>
                             </div>
                         </div>
                         <p class="text-xs sm:text-sm text-gray-600 mb-1">Saran Harga Jual:</p>
@@ -221,7 +223,8 @@
                 
                 // Dapatkan nilai margin yang dipilih
                 const selectedMargin = parseFloat(document.querySelector('input[name="margin"]:checked').value);
-                const suggestedPrice = finalHpp * selectedMargin;
+                // Untuk margin persentase, harga jual = HPP + (HPP * margin)
+                const suggestedPrice = finalHpp + (finalHpp * selectedMargin);
 
                 // Tampilkan hasil
                 document.getElementById('total-ingredients').innerText = `Rp ${totalIngredientCost.toLocaleString('id-ID')}`;
@@ -253,6 +256,7 @@
 
                 // Dapatkan nilai margin yang dipilih
                 const selectedMargin = parseFloat(document.querySelector('input[name="margin"]:checked').value);
+                const marginPercentage = selectedMargin * 100;
 
                 const recipe = {
                     id: Date.now(),
@@ -260,7 +264,7 @@
                     ingredients: ingredients,
                     overhead: document.getElementById('overhead-cost').value,
                     hpp: document.getElementById('final-hpp').innerText,
-                    margin: selectedMargin,
+                    margin: marginPercentage + '%',
                     suggestedPrice: document.getElementById('suggested-price').innerText
                 };
 
@@ -271,9 +275,59 @@
                 // Simpan resep baru ke localStorage
                 localStorage.setItem('restaurantRecipes', JSON.stringify(savedRecipes));
 
+                // Simpan ke Excel
+                saveRecipeToExcel(recipe);
+
                 alert('Resep berhasil disimpan!');
                 displaySavedRecipes();
             });
+
+            // Fungsi untuk menyimpan resep ke Excel
+            function saveRecipeToExcel(recipe) {
+                // Buat workbook baru
+                const wb = XLSX.utils.book_new();
+                
+                // Siapkan data untuk sheet resep
+                const recipeData = [
+                    ['Nama Menu', recipe.name],
+                    ['HPP', recipe.hpp],
+                    ['Margin', recipe.margin],
+                    ['Harga Jual yang Disarankan', recipe.suggestedPrice],
+                    ['Biaya Tambahan', `Rp ${parseFloat(recipe.overhead).toLocaleString('id-ID')}`],
+                    ['Tanggal', new Date().toLocaleDateString('id-ID')]
+                ];
+                
+                // Buat worksheet dari data resep
+                const wsRecipe = XLSX.utils.aoa_to_sheet(recipeData);
+                
+                // Tambahkan worksheet ke workbook
+                XLSX.utils.book_append_sheet(wb, wsRecipe, 'Resep');
+                
+                // Siapkan data untuk sheet bahan
+                const ingredientsData = [['Nama Bahan', 'Quantity', 'Satuan', 'Harga/Satuan', 'Total']];
+                
+                // Tambahkan setiap bahan ke data
+                recipe.ingredients.forEach(ingredient => {
+                    const total = parseFloat(ingredient.qty) * parseFloat(ingredient.price);
+                    ingredientsData.push([
+                        ingredient.name,
+                        ingredient.qty,
+                        ingredient.unit,
+                        `Rp ${parseFloat(ingredient.price).toLocaleString('id-ID')}`,
+                        `Rp ${total.toLocaleString('id-ID')}`
+                    ]);
+                });
+                
+                // Buat worksheet dari data bahan
+                const wsIngredients = XLSX.utils.aoa_to_sheet(ingredientsData);
+                
+                // Tambahkan worksheet ke workbook
+                XLSX.utils.book_append_sheet(wb, wsIngredients, 'Bahan');
+                
+                // Simpan workbook sebagai file Excel
+                const fileName = `${recipe.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+            }
 
             // Fungsi untuk menampilkan resep yang tersimpan
             function displaySavedRecipes() {
@@ -292,7 +346,7 @@
                         <button onclick="deleteRecipe(${recipe.id})" class="absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold text-sm sm:text-base">X</button>
                         <h3 class="font-bold text-base sm:text-lg mb-2 pr-6">${recipe.name}</h3>
                         <p class="text-xs sm:text-sm text-gray-600">HPP: <span class="font-semibold">${recipe.hpp}</span></p>
-                        <p class="text-xs sm:text-sm text-gray-600">Margin: <span class="font-semibold">${recipe.margin}x</span></p>
+                        <p class="text-xs sm:text-sm text-gray-600">Margin: <span class="font-semibold">${recipe.margin}</span></p>
                         <p class="text-xs sm:text-sm text-gray-600">Saran Jual: <span class="font-semibold text-blue-600">${recipe.suggestedPrice}</span></p>
                     `;
                     savedRecipesContainer.appendChild(card);

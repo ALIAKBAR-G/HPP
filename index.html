@@ -16,13 +16,6 @@
         body {
             font-family: 'Poppins', sans-serif;
         }
-        /* Custom scrollbar untuk mobile */
-        @media (max-width: 640px) {
-            .ingredient-item {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-        }
         /* Custom styling for radio buttons */
         .margin-option {
             display: none;
@@ -35,6 +28,28 @@
             background-color: #3b82f6;
             color: white;
             border-color: #3b82f6;
+        }
+        /* Table styling */
+        .ingredient-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .ingredient-table th, .ingredient-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .ingredient-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        @media (max-width: 640px) {
+            .ingredient-table {
+                font-size: 0.75rem;
+            }
+            .ingredient-table th, .ingredient-table td {
+                padding: 6px 4px;
+            }
         }
     </style>
 </head>
@@ -61,26 +76,62 @@
                 
                 <form id="hpp-form">
                     <!-- Nama Menu -->
-                    <div class="mb-4">
+                    <div class="mb-6">
                         <label for="menu-name" class="block text-gray-700 font-semibold mb-2 text-sm sm:text-base">Nama Menu</label>
                         <input type="text" id="menu-name" class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base" placeholder="Contoh: Nasi Goreng Spesial" required>
                     </div>
 
-                    <!-- Daftar Bahan -->
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2 text-sm sm:text-base">Daftar Bahan</label>
-                        <div id="ingredients-list" class="space-y-3">
-                            <!-- Bahan akan ditambahkan di sini oleh JavaScript -->
+                    <!-- Bagian 1: Harga Beli -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 text-gray-800">1. Harga Beli</h3>
+                        <div class="overflow-x-auto">
+                            <table class="ingredient-table">
+                                <thead>
+                                    <tr>
+                                        <th class="w-2/5">Bahan Baku</th>
+                                        <th class="w-1/5">Jumlah</th>
+                                        <th class="w-1/5">Satuan</th>
+                                        <th class="w-1/5">Harga</th>
+                                        <th class="w-12"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchase-ingredients-list">
+                                    <!-- Bahan akan ditambahkan di sini oleh JavaScript -->
+                                </tbody>
+                            </table>
                         </div>
                         <button type="button" id="add-ingredient-btn" class="mt-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 text-sm sm:text-base w-full sm:w-auto">
                             + Tambah Bahan
                         </button>
                     </div>
 
-                    <!-- Biaya Tambahan -->
+                    <!-- Bagian 2: Total Biaya Bahan Baku/Porsi -->
                     <div class="mb-6">
-                        <label for="overhead-cost" class="block text-gray-700 font-semibold mb-2 text-sm sm:text-base">Biaya Tambahan (Overhead, Gas, Listrik, dll)</label>
-                        <input type="number" id="overhead-cost" class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base" placeholder="Contoh: 5000" value="0">
+                        <h3 class="text-lg font-semibold mb-3 text-gray-800">2. Total Biaya Bahan Baku/Porsi</h3>
+                        <div class="overflow-x-auto">
+                            <table class="ingredient-table">
+                                <thead>
+                                    <tr>
+                                        <th class="w-2/5">Bahan Baku</th>
+                                        <th class="w-1/5">Jumlah</th>
+                                        <th class="w-1/5">Satuan</th>
+                                        <th class="w-1/5">Harga</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portion-ingredients-list">
+                                    <!-- Bahan akan ditambahkan di sini oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bagian 3: Biaya Overhead -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 text-gray-800">3. Biaya Overhead</h3>
+                        <div class="flex items-center">
+                            <label for="overhead-cost" class="text-gray-700 font-medium mr-3">Jumlah:</label>
+                            <input type="number" id="overhead-cost" class="w-full sm:w-1/3 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base" placeholder="Contoh: 5000" value="0">
+                        </div>
                     </div>
 
                     <!-- Tombol Aksi -->
@@ -152,7 +203,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const ingredientsList = document.getElementById('ingredients-list');
+            const purchaseIngredientsList = document.getElementById('purchase-ingredients-list');
+            const portionIngredientsList = document.getElementById('portion-ingredients-list');
             const addIngredientBtn = document.getElementById('add-ingredient-btn');
             const hppForm = document.getElementById('hpp-form');
             const saveRecipeBtn = document.getElementById('save-recipe-btn');
@@ -163,35 +215,106 @@
 
             // Fungsi untuk membuat elemen bahan baru
             function createIngredientElement(id) {
-                const div = document.createElement('div');
-                div.className = 'ingredient-item flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 items-start sm:items-center';
-                div.innerHTML = `
-                    <input type="text" placeholder="Nama bahan (ex: Daging Ayam)" class="ingredient-name w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
-                    <div class="flex space-x-2 w-full sm:w-auto">
-                        <input type="number" placeholder="Qty" class="ingredient-qty w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
-                        <select class="ingredient-unit px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                const purchaseRow = document.createElement('tr');
+                purchaseRow.className = 'purchase-ingredient-row';
+                purchaseRow.innerHTML = `
+                    <td class="pr-2">
+                        <input type="text" placeholder="Nama bahan" class="purchase-ingredient-name w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
+                    </td>
+                    <td class="pr-2">
+                        <input type="number" placeholder="Qty" class="purchase-ingredient-qty w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
+                    </td>
+                    <td class="pr-2">
+                        <select class="purchase-ingredient-unit w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
                             <option value="kg">kg</option>
                             <option value="gram">gram</option>
                             <option value="liter">liter</option>
                             <option value="ml">ml</option>
                             <option value="pcs">pcs</option>
-                            <option value="sendok">sendok</option>
+                            <option value="cetakan">cetakan</option>
                         </select>
-                        <input type="number" placeholder="Harga/satuan" class="ingredient-price w-24 sm:w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
-                    </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-lg transition duration-300 text-sm w-full sm:w-auto">X</button>
+                    </td>
+                    <td class="pr-2">
+                        <input type="number" placeholder="Harga" class="purchase-ingredient-price w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
+                    </td>
+                    <td>
+                        <button type="button" onclick="removeIngredientRow(${id})" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded transition duration-300">X</button>
+                    </td>
                 `;
-                return div;
+
+                const portionRow = document.createElement('tr');
+                portionRow.className = 'portion-ingredient-row';
+                portionRow.innerHTML = `
+                    <td class="pr-2">
+                        <input type="text" placeholder="Nama bahan" class="portion-ingredient-name w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" readonly>
+                    </td>
+                    <td class="pr-2">
+                        <input type="number" placeholder="Qty" class="portion-ingredient-qty w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" required>
+                    </td>
+                    <td class="pr-2">
+                        <select class="portion-ingredient-unit w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                            <option value="kg">kg</option>
+                            <option value="gram">gram</option>
+                            <option value="liter">liter</option>
+                            <option value="ml">ml</option>
+                            <option value="pcs">pcs</option>
+                            <option value="cetakan">cetakan</option>
+                        </select>
+                    </td>
+                    <td class="pr-2">
+                        <input type="number" placeholder="Harga" class="portion-ingredient-price w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 text-sm" readonly>
+                    </td>
+                `;
+
+                // Sinkronisasi nama bahan antara tabel pembelian dan tabel porsi
+                const purchaseNameInput = purchaseRow.querySelector('.purchase-ingredient-name');
+                const portionNameInput = portionRow.querySelector('.portion-ingredient-name');
+                
+                purchaseNameInput.addEventListener('input', () => {
+                    portionNameInput.value = purchaseNameInput.value;
+                });
+
+                return { purchaseRow, portionRow };
+            }
+
+            // Fungsi untuk menghapus baris bahan
+            window.removeIngredientRow = function(id) {
+                const purchaseRows = document.querySelectorAll('.purchase-ingredient-row');
+                const portionRows = document.querySelectorAll('.portion-ingredient-row');
+                
+                if (purchaseRows[id] && portionRows[id]) {
+                    purchaseRows[id].remove();
+                    portionRows[id].remove();
+                    
+                    // Perbarui indeks setelah penghapusan
+                    updateRowIndices();
+                }
+            }
+
+            // Fungsi untuk memperbarui indeks baris
+            function updateRowIndices() {
+                const purchaseRows = document.querySelectorAll('.purchase-ingredient-row');
+                const deleteButtons = document.querySelectorAll('.purchase-ingredient-row button');
+                
+                purchaseRows.forEach((row, index) => {
+                    if (deleteButtons[index]) {
+                        deleteButtons[index].setAttribute('onclick', `removeIngredientRow(${index})`);
+                    }
+                });
             }
 
             // Tambahkan bahan pertama saat halaman dimuat
             if (ingredientCount === 0) {
-                ingredientsList.appendChild(createIngredientElement(ingredientCount++));
+                const { purchaseRow, portionRow } = createIngredientElement(ingredientCount++);
+                purchaseIngredientsList.appendChild(purchaseRow);
+                portionIngredientsList.appendChild(portionRow);
             }
 
             // Event listener untuk tombol tambah bahan
             addIngredientBtn.addEventListener('click', () => {
-                ingredientsList.appendChild(createIngredientElement(ingredientCount++));
+                const { purchaseRow, portionRow } = createIngredientElement(ingredientCount++);
+                purchaseIngredientsList.appendChild(purchaseRow);
+                portionIngredientsList.appendChild(portionRow);
             });
 
             // Event listener untuk form submit (hitung HPP)
@@ -209,13 +332,27 @@
 
             // Fungsi untuk menghitung HPP
             function calculateHPP() {
+                const purchaseRows = document.querySelectorAll('.purchase-ingredient-row');
+                const portionRows = document.querySelectorAll('.portion-ingredient-row');
                 let totalIngredientCost = 0;
-                const ingredientItems = document.querySelectorAll('.ingredient-item');
 
-                ingredientItems.forEach(item => {
-                    const qty = parseFloat(item.querySelector('.ingredient-qty').value) || 0;
-                    const price = parseFloat(item.querySelector('.ingredient-price').value) || 0;
-                    totalIngredientCost += qty * price;
+                // Hitung harga untuk setiap bahan di tabel porsi
+                portionRows.forEach((row, index) => {
+                    const purchasePrice = parseFloat(purchaseRows[index].querySelector('.purchase-ingredient-price').value) || 0;
+                    const portionQty = parseFloat(row.querySelector('.portion-ingredient-qty').value) || 0;
+                    const purchaseQty = parseFloat(purchaseRows[index].querySelector('.purchase-ingredient-qty').value) || 0;
+                    
+                    // Hitung harga per unit
+                    const pricePerUnit = purchaseQty > 0 ? purchasePrice / purchaseQty : 0;
+                    
+                    // Hitung total harga untuk porsi ini
+                    const totalPrice = pricePerUnit * portionQty;
+                    
+                    // Update field harga di tabel porsi
+                    row.querySelector('.portion-ingredient-price').value = totalPrice.toFixed(2);
+                    
+                    // Tambahkan ke total biaya bahan
+                    totalIngredientCost += totalPrice;
                 });
 
                 const overheadCost = parseFloat(document.getElementById('overhead-cost').value) || 0;
@@ -245,12 +382,18 @@
                 calculateHPP();
 
                 const ingredients = [];
-                document.querySelectorAll('.ingredient-item').forEach(item => {
+                const purchaseRows = document.querySelectorAll('.purchase-ingredient-row');
+                const portionRows = document.querySelectorAll('.portion-ingredient-row');
+                
+                purchaseRows.forEach((row, index) => {
                     ingredients.push({
-                        name: item.querySelector('.ingredient-name').value,
-                        qty: item.querySelector('.ingredient-qty').value,
-                        unit: item.querySelector('.ingredient-unit').value,
-                        price: item.querySelector('.ingredient-price').value
+                        name: row.querySelector('.purchase-ingredient-name').value,
+                        purchaseQty: row.querySelector('.purchase-ingredient-qty').value,
+                        purchaseUnit: row.querySelector('.purchase-ingredient-unit').value,
+                        purchasePrice: row.querySelector('.purchase-ingredient-price').value,
+                        portionQty: portionRows[index].querySelector('.portion-ingredient-qty').value,
+                        portionUnit: portionRows[index].querySelector('.portion-ingredient-unit').value,
+                        portionPrice: portionRows[index].querySelector('.portion-ingredient-price').value
                     });
                 });
 
@@ -304,17 +447,18 @@
                 XLSX.utils.book_append_sheet(wb, wsRecipe, 'Resep');
                 
                 // Siapkan data untuk sheet bahan
-                const ingredientsData = [['Nama Bahan', 'Quantity', 'Satuan', 'Harga/Satuan', 'Total']];
+                const ingredientsData = [['Nama Bahan', 'Qty Pembelian', 'Satuan Pembelian', 'Harga Pembelian', 'Qty Porsi', 'Satuan Porsi', 'Harga Porsi']];
                 
                 // Tambahkan setiap bahan ke data
                 recipe.ingredients.forEach(ingredient => {
-                    const total = parseFloat(ingredient.qty) * parseFloat(ingredient.price);
                     ingredientsData.push([
                         ingredient.name,
-                        ingredient.qty,
-                        ingredient.unit,
-                        `Rp ${parseFloat(ingredient.price).toLocaleString('id-ID')}`,
-                        `Rp ${total.toLocaleString('id-ID')}`
+                        ingredient.purchaseQty,
+                        ingredient.purchaseUnit,
+                        `Rp ${parseFloat(ingredient.purchasePrice).toLocaleString('id-ID')}`,
+                        ingredient.portionQty,
+                        ingredient.portionUnit,
+                        `Rp ${parseFloat(ingredient.portionPrice).toLocaleString('id-ID')}`
                     ]);
                 });
                 

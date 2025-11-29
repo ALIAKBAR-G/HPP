@@ -21,6 +21,19 @@
                 -webkit-overflow-scrolling: touch;
             }
         }
+        /* Custom styling for radio buttons */
+        .margin-option {
+            display: none;
+        }
+        .margin-label {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .margin-option:checked + .margin-label {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -99,7 +112,26 @@
                     </div>
                     <hr>
                     <div class="bg-blue-50 p-3 sm:p-4 rounded-lg">
-                        <p class="text-xs sm:text-sm text-gray-600 mb-1">Saran Harga Jual (Margin 3x):</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mb-2">Pilih Margin Keuntungan:</p>
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <div class="relative">
+                                <input type="radio" id="margin-3x" name="margin" value="3" class="margin-option" checked>
+                                <label for="margin-3x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">3x</label>
+                            </div>
+                            <div class="relative">
+                                <input type="radio" id="margin-4x" name="margin" value="4" class="margin-option">
+                                <label for="margin-4x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">4x</label>
+                            </div>
+                            <div class="relative">
+                                <input type="radio" id="margin-5x" name="margin" value="5" class="margin-option">
+                                <label for="margin-5x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">5x</label>
+                            </div>
+                            <div class="relative">
+                                <input type="radio" id="margin-6x" name="margin" value="6" class="margin-option">
+                                <label for="margin-6x" class="margin-label px-3 py-1 border border-gray-300 rounded-md text-sm font-medium">6x</label>
+                            </div>
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-600 mb-1">Saran Harga Jual:</p>
                         <p id="suggested-price" class="text-lg sm:text-xl font-bold text-blue-600">Rp 0</p>
                     </div>
                 </div>
@@ -123,6 +155,7 @@
             const hppForm = document.getElementById('hpp-form');
             const saveRecipeBtn = document.getElementById('save-recipe-btn');
             const savedRecipesContainer = document.getElementById('saved-recipes-container');
+            const marginOptions = document.querySelectorAll('input[name="margin"]');
 
             let ingredientCount = 0;
 
@@ -165,6 +198,13 @@
                 calculateHPP();
             });
 
+            // Event listener untuk perubahan margin
+            marginOptions.forEach(option => {
+                option.addEventListener('change', () => {
+                    calculateHPP();
+                });
+            });
+
             // Fungsi untuk menghitung HPP
             function calculateHPP() {
                 let totalIngredientCost = 0;
@@ -178,7 +218,10 @@
 
                 const overheadCost = parseFloat(document.getElementById('overhead-cost').value) || 0;
                 const finalHpp = totalIngredientCost + overheadCost;
-                const suggestedPrice = finalHpp * 3; // Margin 3x
+                
+                // Dapatkan nilai margin yang dipilih
+                const selectedMargin = parseFloat(document.querySelector('input[name="margin"]:checked').value);
+                const suggestedPrice = finalHpp * selectedMargin;
 
                 // Tampilkan hasil
                 document.getElementById('total-ingredients').innerText = `Rp ${totalIngredientCost.toLocaleString('id-ID')}`;
@@ -208,12 +251,16 @@
                     });
                 });
 
+                // Dapatkan nilai margin yang dipilih
+                const selectedMargin = parseFloat(document.querySelector('input[name="margin"]:checked').value);
+
                 const recipe = {
                     id: Date.now(),
                     name: menuName,
                     ingredients: ingredients,
                     overhead: document.getElementById('overhead-cost').value,
                     hpp: document.getElementById('final-hpp').innerText,
+                    margin: selectedMargin,
                     suggestedPrice: document.getElementById('suggested-price').innerText
                 };
 
@@ -245,6 +292,7 @@
                         <button onclick="deleteRecipe(${recipe.id})" class="absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold text-sm sm:text-base">X</button>
                         <h3 class="font-bold text-base sm:text-lg mb-2 pr-6">${recipe.name}</h3>
                         <p class="text-xs sm:text-sm text-gray-600">HPP: <span class="font-semibold">${recipe.hpp}</span></p>
+                        <p class="text-xs sm:text-sm text-gray-600">Margin: <span class="font-semibold">${recipe.margin}x</span></p>
                         <p class="text-xs sm:text-sm text-gray-600">Saran Jual: <span class="font-semibold text-blue-600">${recipe.suggestedPrice}</span></p>
                     `;
                     savedRecipesContainer.appendChild(card);
